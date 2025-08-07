@@ -25,7 +25,7 @@ Infrastructure Terraform pour déployer l'application MBot sur AWS EC2 avec conf
 
 1. **Configuration**:
    ```bash
-   cd ~/infra/aws/mbot/environments/prod
+   cd ~/infra/aws/mbot-infra/environments/prod
    # Éditez terraform.tfvars avec votre IP et nom de clé SSH
    ```
 
@@ -45,7 +45,7 @@ Infrastructure Terraform pour déployer l'application MBot sur AWS EC2 avec conf
 ## 📁 Structure
 
 ```
-~/infra/aws/mbot/
+~/infra/aws/mbot-infra/
 ├── environments/prod/          # Configuration production
 │   ├── main.tf                # Point d'entrée Terraform
 │   ├── terraform.tfvars       # Variables de configuration
@@ -66,7 +66,7 @@ Infrastructure Terraform pour déployer l'application MBot sur AWS EC2 avec conf
 
 **Mode interactif**:
 ```bash
-cd ~/infra/aws/mbot
+cd ~/infra/aws/mbot-infra
 ./scripts/manage.sh
 ```
 
@@ -116,7 +116,7 @@ cd ~/infra/aws/mbot
 **Planification (crontab)**:
 ```bash
 # Sauvegarde quotidienne à 2h du matin
-0 2 * * * cd ~/infra/aws/mbot && ./scripts/backup.sh auto
+0 2 * * * cd ~/infra/aws/mbot-infra && ./scripts/backup.sh auto
 ```
 
 ## 💰 Optimisation des Coûts

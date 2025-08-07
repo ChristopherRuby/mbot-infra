@@ -70,13 +70,13 @@ create_snapshot() {
     
     # Créer le snapshot avec timestamp
     TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-    DESCRIPTION="mbot-backup-terraform-$TIMESTAMP"
+    DESCRIPTION="mbot-infra-backup-terraform-$TIMESTAMP"
     
     echo "📸 Création du snapshot..."
     SNAPSHOT_ID=$(aws ec2 create-snapshot \
         --volume-id $VOLUME_ID \
         --description "$DESCRIPTION" \
-        --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=$DESCRIPTION},{Key=Project,Value=mbot-terraform},{Key=Environment,Value=prod},{Key=ManagedBy,Value=terraform-scripts},{Key=CreatedBy,Value=backup-script}]" \
+        --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=$DESCRIPTION},{Key=Project,Value=mbot-infra-terraform},{Key=Environment,Value=prod},{Key=ManagedBy,Value=terraform-scripts},{Key=CreatedBy,Value=backup-script}]" \
         --query 'SnapshotId' \
         --output text 2>/dev/null)
     
@@ -120,7 +120,7 @@ list_snapshots() {
     
     SNAPSHOTS=$(aws ec2 describe-snapshots \
         --owner-ids self \
-        --filters "Name=tag:Project,Values=mbot-terraform" \
+        --filters "Name=tag:Project,Values=mbot-infra-terraform" \
         --query 'Snapshots[*].[SnapshotId,Description,StartTime,State,Progress,VolumeSize]' \
         --output table 2>/dev/null)
     
@@ -131,7 +131,7 @@ list_snapshots() {
         # Compter les snapshots
         SNAPSHOT_COUNT=$(aws ec2 describe-snapshots \
             --owner-ids self \
-            --filters "Name=tag:Project,Values=mbot-terraform" \
+            --filters "Name=tag:Project,Values=mbot-infra-terraform" \
             --query 'length(Snapshots[])' \
             --output text 2>/dev/null)
         
@@ -160,7 +160,7 @@ cleanup_old_snapshots() {
     # Récupérer les snapshots anciens
     OLD_SNAPSHOTS=$(aws ec2 describe-snapshots \
         --owner-ids self \
-        --filters "Name=tag:Project,Values=mbot-terraform" \
+        --filters "Name=tag:Project,Values=mbot-infra-terraform" \
         --query "Snapshots[?StartTime<'$CUTOFF_DATE'].SnapshotId" \
         --output text 2>/dev/null)
     
@@ -204,7 +204,7 @@ cost_estimation() {
     # Récupérer la taille total des snapshots
     TOTAL_SIZE=$(aws ec2 describe-snapshots \
         --owner-ids self \
-        --filters "Name=tag:Project,Values=mbot-terraform" \
+        --filters "Name=tag:Project,Values=mbot-infra-terraform" \
         --query "sum(Snapshots[].VolumeSize)" \
         --output text 2>/dev/null)
     
