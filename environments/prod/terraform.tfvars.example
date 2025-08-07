@@ -1,0 +1,19 @@
+# Configuration example for mbot production deployment
+environment = "prod"
+aws_region  = "eu-west-1"
+
+# Instance configuration
+instance_type = "t3.small"           # Recommandé selon le guide (15-20$/mois)
+key_name      = "my-aws-key"         # Remplacez par votre nom de clé AWS
+
+# Network security - IMPORTANT: Limitez à votre IP pour plus de sécurité
+allowed_ssh_cidrs = ["1.2.3.4/32"]  # Remplacez par votre IP publique
+
+# Application configuration
+mongodb_database   = "sample_mflix"
+mongodb_collection = "movies"
+github_repo        = "https://github.com/ChristopherRuby/mbot.git"
+
+# Variables sensibles - NE PAS COMMITTER CES VALEURS
+perplexity_api_key = "pplx-your-api-key-here"
+mongodb_uri        = "mongodb+srv://username:password@cluster.mongodb.net/"
