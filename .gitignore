@@ -52,3 +52,4 @@ temp/
 # AWS Credentials
 credentials
 config
+.env.secrets

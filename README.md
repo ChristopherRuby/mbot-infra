@@ -28,10 +28,16 @@ Infrastructure Terraform pour déployer l'application MBot sur AWS EC2 avec conf
    # Vérifier la création
    ls -la ~/.ssh/mbot-key.pem
    ``` 
-4. **Variables d'environnement** définies dans `~/.bashrc`:
+4. **Fichier de secrets** configuré :
    ```bash
-   export TF_VAR_perplexity_api_key="your_perplexity_key"
-   export TF_VAR_mongodb_uri="your_mongodb_connection_string"
+   # Copiez le template et remplissez vos valeurs
+   cp .env.secrets.todo .env.secrets
+   
+   # Éditez .env.secrets avec vos vraies valeurs :
+   # PERPLEXITY_API_KEY=pplx-xxxxx
+   # MONGODB_URI=mongodb+srv://...
+   # MONGODB_DATABASE=sample_mflix
+   # MONGODB_COLLECTION=movies
    ```
 5. **MongoDB Atlas configuré** :
    - **Whitelist IP** : Ajouter l'IP de l'EC2 dans MongoDB Atlas Network Access
@@ -96,6 +102,19 @@ Infrastructure Terraform pour déployer l'application MBot sur AWS EC2 avec conf
 ```
 
 ## 🔧 Scripts de Gestion
+
+### Variables d'Environnement (`./load-env.sh`)
+
+**Script helper pour charger les variables d'environnement** :
+```bash
+# Charger les variables pour Terraform ou autres scripts
+source ./load-env.sh
+
+# Vérifier les variables chargées
+echo $TF_VAR_perplexity_api_key
+```
+
+Ce script charge automatiquement les variables depuis `.env.secrets` et les exporte au format requis par Terraform (`TF_VAR_*`).
 
 ### Gestion d'Instance (`./scripts/manage.sh`)
 
@@ -246,9 +265,9 @@ cd ~/infra/aws/mbot-infra
 - Connexion: `ssh -i mbot-key.pem ubuntu@<IP_PUBLIQUE>`
 
 ### Variables Sensibles
-- APIs keys dans variables d'environnement TF_VAR_*
-- Jamais dans le code source
-- Chargées automatiquement par Terraform
+- APIs keys dans le fichier `.env.secrets` (ignoré par Git)
+- Jamais dans le code source ou commits
+- Chargées automatiquement par les scripts de déploiement
 
 ### Sauvegardes
 - Snapshots EBS chiffrés

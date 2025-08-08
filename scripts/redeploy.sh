@@ -8,6 +8,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 TERRAFORM_DIR="$SCRIPT_DIR/../environments/prod"
 GITHUB_REPO="https://github.com/ChristopherRuby/mbot.git"
+ENV_SECRETS_FILE="$SCRIPT_DIR/../.env.secrets"
 
 # Couleurs
 RED='\033[0;31m'
@@ -15,6 +16,26 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
+
+# Fonction pour charger les variables d'environnement depuis .env.secrets
+load_env_secrets() {
+    if [ ! -f "$ENV_SECRETS_FILE" ]; then
+        echo -e "${RED}❌ Fichier .env.secrets non trouvé: $ENV_SECRETS_FILE${NC}"
+        echo "Copiez le template et remplissez vos valeurs :"
+        echo "  cp .env.secrets.todo .env.secrets"
+        echo "  # Éditez .env.secrets avec vos vraies valeurs"
+        return 1
+    fi
+    
+    # Exporter les variables pour Terraform et les scripts
+    export $(grep -v '^#' "$ENV_SECRETS_FILE" | grep -v '^$' | xargs)
+    export TF_VAR_perplexity_api_key="$PERPLEXITY_API_KEY"
+    export TF_VAR_mongodb_uri="$MONGODB_URI"
+    export TF_VAR_mongodb_database="$MONGODB_DATABASE"
+    export TF_VAR_mongodb_collection="$MONGODB_COLLECTION"
+    
+    return 0
+}
 
 # Fonction pour obtenir l'IP publique depuis Terraform
 get_public_ip() {
@@ -48,6 +69,13 @@ check_ssh() {
 redeploy() {
     echo -e "${BLUE}🚀 Début du redéploiement MBot${NC}"
     echo "================================"
+    
+    # Charger les variables d'environnement
+    echo -e "🔑 Chargement des variables d'environnement..."
+    if ! load_env_secrets; then
+        exit 1
+    fi
+    echo -e "✅ Variables chargées depuis .env.secrets"
     
     # Obtenir l'IP de l'instance
     echo -e "🔍 Récupération de l'IP de l'instance..."
@@ -102,26 +130,23 @@ redeploy() {
         exit 1
     }
     
-    # Configuration des variables d'environnement
-    echo -e "🔧 Configuration des variables d'environnement..."
+    # Configuration du fichier .env sur l'EC2
+    echo -e "🔧 Configuration du fichier .env sur l'EC2..."
     
-    # Vérifier que les variables TF_VAR sont disponibles
-    if [ -z "$TF_VAR_perplexity_api_key" ] || [ -z "$TF_VAR_mongodb_uri" ]; then
-        echo -e "${YELLOW}⚠️  Variables TF_VAR non trouvées, chargement depuis ~/.bashrc...${NC}"
-        source ~/.bashrc
-    fi
+    # Copier le fichier .env.secrets vers l'EC2
+    scp -i ~/.ssh/mbot-key.pem "$ENV_SECRETS_FILE" ubuntu@$PUBLIC_IP:/tmp/.env.tmp || {
+        echo -e "${RED}❌ Échec de la copie du fichier .env.secrets${NC}"
+        exit 1
+    }
     
-    # Créer le fichier .env directement
+    # Déplacer le fichier avec les bonnes permissions
     ssh -i ~/.ssh/mbot-key.pem ubuntu@$PUBLIC_IP "
-        sudo -u mbot tee /home/mbot/app/.env > /dev/null << 'EOF'
-PERPLEXITY_API_KEY=$TF_VAR_perplexity_api_key
-MONGODB_URI=$TF_VAR_mongodb_uri
-MONGODB_DATABASE=sample_mflix
-MONGODB_COLLECTION=movies
-EOF
-        echo '✅ Variables d'environnement configurées'
+        sudo mv /tmp/.env.tmp /home/mbot/app/.env &&
+        sudo chown mbot:mbot /home/mbot/app/.env &&
+        sudo chmod 600 /home/mbot/app/.env &&
+        echo '✅ Fichier .env configuré'
     " || {
-        echo -e "${RED}❌ Échec de la configuration${NC}"
+        echo -e "${RED}❌ Échec de la configuration du fichier .env${NC}"
         exit 1
     }
     
