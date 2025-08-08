@@ -22,9 +22,14 @@ check_terraform() {
         exit 1
     fi
     
-    if [ ! -f "$TERRAFORM_DIR/terraform.tfstate" ]; then
-        echo -e "${YELLOW}⚠️  État Terraform non trouvé${NC}"
-        echo "Déployez d'abord votre infrastructure avec 'terraform apply'"
+    cd "$TERRAFORM_DIR"
+    # Vérifier que terraform est initialisé et peut accéder au backend S3
+    if ! terraform output instance_id &>/dev/null; then
+        echo -e "${YELLOW}⚠️  État Terraform non trouvé ou inaccessible${NC}"
+        echo "Vérifiez que:"
+        echo "1. 'terraform init' a été exécuté"
+        echo "2. 'terraform apply' a été exécuté"
+        echo "3. Le backend S3 est accessible"
         return 1
     fi
     

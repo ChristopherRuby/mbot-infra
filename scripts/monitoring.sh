@@ -104,7 +104,7 @@ check_system_metrics() {
     fi
     
     # Construire la commande SSH
-    SSH_KEY_PATH="$SCRIPT_DIR/../mbot-key.pem"
+    SSH_KEY_PATH="$HOME/.ssh/mbot-key.pem"
     
     if [ ! -f "$SSH_KEY_PATH" ]; then
         echo -e "${RED}❌ Clé SSH non trouvée: $SSH_KEY_PATH${NC}"
@@ -185,7 +185,7 @@ check_services_status() {
         return 1
     fi
     
-    SSH_KEY_PATH="$SCRIPT_DIR/../mbot-key.pem"
+    SSH_KEY_PATH="$HOME/.ssh/mbot-key.pem"
     
     if [ ! -f "$SSH_KEY_PATH" ]; then
         echo -e "${RED}❌ Clé SSH non trouvée${NC}"
@@ -234,7 +234,7 @@ show_recent_logs() {
         return 1
     fi
     
-    SSH_KEY_PATH="$SCRIPT_DIR/../mbot-key.pem"
+    SSH_KEY_PATH="$HOME/.ssh/mbot-key.pem"
     
     if [ ! -f "$SSH_KEY_PATH" ]; then
         echo -e "${RED}❌ Clé SSH non trouvée${NC}"

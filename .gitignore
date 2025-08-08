@@ -12,6 +12,8 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+## Terraform output apply
+.output
 
 # Sensitive files
 *.pem

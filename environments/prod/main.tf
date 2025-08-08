@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket = "mbot-infra-terraform-state-prod"
+    bucket = "mbot-terraform-state-prod"
     key    = "prod/terraform.tfstate"
     region = "eu-west-3"  # Paris pour minimiser les coûts
   }
