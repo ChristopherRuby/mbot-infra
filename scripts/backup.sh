@@ -15,6 +15,34 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Fonction d'aide
+show_help() {
+    echo -e "${BLUE}💾 Script de sauvegarde MBot Infrastructure${NC}"
+    echo ""
+    echo "Usage: ./scripts/backup.sh [option]"
+    echo ""
+    echo "Options:"
+    echo "  create      - Créer une sauvegarde (snapshot EBS)"
+    echo "  list        - Lister toutes les sauvegardes existantes"
+    echo "  cleanup     - Supprimer les sauvegardes anciennes (>7 jours)"
+    echo "  restore     - Informations pour restaurer une sauvegarde"
+    echo "  costs       - Estimation des coûts de sauvegarde"
+    echo "  auto        - Sauvegarde automatique + nettoyage"
+    echo "  help|-h     - Afficher cette aide"
+    echo "  [aucun]     - Mode interactif (menu)"
+    echo ""
+    echo "Exemples:"
+    echo "  ./scripts/backup.sh              # Menu interactif"
+    echo "  ./scripts/backup.sh create       # Créer une sauvegarde"
+    echo "  ./scripts/backup.sh list         # Lister les sauvegardes"
+    echo "  ./scripts/backup.sh cleanup      # Nettoyer anciennes sauvegardes"
+    echo "  ./scripts/backup.sh auto         # Auto-sauvegarde + nettoyage"
+    echo ""
+    echo "Planification crontab (quotidienne à 2h):"
+    echo "  0 2 * * * cd ~/infra/aws/mbot-infra && ./scripts/backup.sh auto"
+    echo ""
+}
+
 # Fonction pour obtenir l'Instance ID depuis Terraform
 get_instance_id() {
     cd "$TERRAFORM_DIR"
@@ -304,12 +332,19 @@ if ! command -v jq &> /dev/null; then
 fi
 
 # Mode automatique ou interactif
-if [ "$1" = "create" ]; then
+if [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+    exit 0
+elif [ "$1" = "create" ]; then
     create_snapshot "$2"
 elif [ "$1" = "list" ]; then
     list_snapshots
 elif [ "$1" = "cleanup" ]; then
     cleanup_old_snapshots "$2"
+elif [ "$1" = "restore" ]; then
+    restore_info
+elif [ "$1" = "costs" ]; then
+    cost_estimation
 elif [ "$1" = "auto" ]; then
     echo -e "${BLUE}🤖 Mode automatique - Sauvegarde + Nettoyage${NC}"
     create_snapshot

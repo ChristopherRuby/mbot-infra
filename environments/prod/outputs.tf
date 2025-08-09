@@ -8,6 +8,11 @@ output "instance_public_ip" {
   value       = module.mbot_ec2.instance_public_ip
 }
 
+output "elastic_ip" {
+  description = "Elastic IP address assigned to the EC2 instance"
+  value       = module.mbot_ec2.elastic_ip
+}
+
 output "instance_public_dns" {
   description = "Public DNS name of the EC2 instance" 
   value       = module.mbot_ec2.instance_public_dns
@@ -20,5 +25,5 @@ output "application_url" {
 
 output "ssh_command" {
   description = "SSH command to connect to the instance"
-  value       = "ssh -i YOUR_KEY.pem ubuntu@${module.mbot_ec2.instance_public_ip}"
+  value       = "ssh -i YOUR_KEY.pem ubuntu@${module.mbot_ec2.elastic_ip}"
 }

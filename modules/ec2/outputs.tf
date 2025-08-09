@@ -8,6 +8,11 @@ output "instance_public_ip" {
   value       = aws_instance.mbot_chatbot.public_ip
 }
 
+output "elastic_ip" {
+  description = "Elastic IP address assigned to the EC2 instance"
+  value       = aws_eip.mbot_eip.public_ip
+}
+
 output "instance_public_dns" {
   description = "Public DNS name of the EC2 instance"
   value       = aws_instance.mbot_chatbot.public_dns
@@ -20,5 +25,5 @@ output "security_group_id" {
 
 output "application_url" {
   description = "URL to access the mbot application"
-  value       = "http://${aws_instance.mbot_chatbot.public_ip}"
+  value       = "http://${aws_eip.mbot_eip.public_ip}"
 }

@@ -14,6 +14,31 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Fonction d'aide
+show_help() {
+    echo -e "${BLUE}🎬 Script de gestion MBot Infrastructure${NC}"
+    echo ""
+    echo "Usage: ./scripts/manage.sh [option]"
+    echo ""
+    echo "Options:"
+    echo "  status    - Afficher l'état de l'instance"
+    echo "  start     - Démarrer l'instance EC2"
+    echo "  stop      - Arrêter l'instance EC2"
+    echo "  restart   - Redémarrer l'instance EC2"
+    echo "  quick     - Test rapide d'accès à l'application"
+    echo "  help|-h   - Afficher cette aide"
+    echo "  [aucun]   - Mode interactif (menu)"
+    echo ""
+    echo "Exemples:"
+    echo "  ./scripts/manage.sh                # Menu interactif"
+    echo "  ./scripts/manage.sh status         # État de l'instance"
+    echo "  ./scripts/manage.sh start          # Démarrer l'instance"
+    echo "  ./scripts/manage.sh stop           # Arrêter l'instance"
+    echo "  ./scripts/manage.sh restart        # Redémarrer l'instance"
+    echo "  ./scripts/manage.sh quick          # Test rapide"
+    echo ""
+}
+
 # Fonction pour vérifier que Terraform est configuré
 check_terraform() {
     if ! command -v terraform &> /dev/null; then
@@ -282,7 +307,10 @@ if ! command -v aws &> /dev/null; then
 fi
 
 # Boucle du menu principal
-if [ "$1" = "status" ]; then
+if [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+    exit 0
+elif [ "$1" = "status" ]; then
     check_instance_status
 elif [ "$1" = "start" ]; then
     start_instance

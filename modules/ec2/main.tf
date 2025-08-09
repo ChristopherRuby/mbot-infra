@@ -40,3 +40,17 @@ resource "aws_instance" "mbot_chatbot" {
     Project     = var.project_name
   }
 }
+
+# Elastic IP for the instance
+resource "aws_eip" "mbot_eip" {
+  instance = aws_instance.mbot_chatbot.id
+  domain   = "vpc"
+
+  tags = {
+    Name        = "${var.project_name}-eip"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+
+  depends_on = [aws_instance.mbot_chatbot]
+}

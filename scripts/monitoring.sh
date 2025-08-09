@@ -14,6 +14,32 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Fonction d'aide
+show_help() {
+    echo -e "${BLUE}📊 Script de monitoring MBot Infrastructure${NC}"
+    echo ""
+    echo "Usage: ./scripts/monitoring.sh [option]"
+    echo ""
+    echo "Options:"
+    echo "  health      - État de santé de l'instance AWS"
+    echo "  metrics     - Métriques système (CPU, RAM, disque)"
+    echo "  services    - État des services (mbot, nginx)"
+    echo "  logs        - Logs récents de l'application"
+    echo "  dashboard   - Dashboard complet (toutes les infos)"
+    echo "  continuous  - Monitoring continu (rafraîchissement automatique)"
+    echo "  help|-h     - Afficher cette aide"
+    echo "  [aucun]     - Mode interactif (menu)"
+    echo ""
+    echo "Exemples:"
+    echo "  ./scripts/monitoring.sh              # Menu interactif"
+    echo "  ./scripts/monitoring.sh health       # État AWS de l'instance"
+    echo "  ./scripts/monitoring.sh metrics      # Métriques système"
+    echo "  ./scripts/monitoring.sh services     # État des services"
+    echo "  ./scripts/monitoring.sh logs         # Logs récents"
+    echo "  ./scripts/monitoring.sh dashboard    # Dashboard complet"
+    echo ""
+}
+
 # Fonction pour obtenir l'IP publique depuis Terraform
 get_public_ip() {
     cd "$TERRAFORM_DIR"
@@ -326,7 +352,10 @@ if ! command -v terraform &> /dev/null; then
 fi
 
 # Mode automatique ou interactif
-if [ "$1" = "dashboard" ]; then
+if [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+    exit 0
+elif [ "$1" = "dashboard" ]; then
     show_dashboard
 elif [ "$1" = "health" ]; then
     check_instance_health
@@ -336,6 +365,8 @@ elif [ "$1" = "services" ]; then
     check_services_status
 elif [ "$1" = "logs" ]; then
     show_recent_logs
+elif [ "$1" = "continuous" ]; then
+    continuous_monitoring
 else
     # Mode interactif
     while true; do

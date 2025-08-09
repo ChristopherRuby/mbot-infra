@@ -5,6 +5,7 @@ Infrastructure Terraform pour déployer l'application MBot sur AWS EC2 avec conf
 ## 🏗️ Architecture
 
 - **Instance EC2**: t3.small Ubuntu (optimisée coût/performance)
+- **Elastic IP**: IP publique fixe attachée à l'instance
 - **Stockage**: EBS GP3 20GB
 - **Réseau**: VPC, subnet public, Internet Gateway
 - **Sécurité**: Security groups SSH/HTTP, clé SSH
@@ -67,20 +68,36 @@ Infrastructure Terraform pour déployer l'application MBot sur AWS EC2 avec conf
 
 3. **Configuration MongoDB Atlas** (OBLIGATOIRE):
    ```bash
-   # Récupérer l'IP publique de l'EC2 depuis les outputs Terraform
-   terraform output instance_public_ip
+   # Récupérer l'Elastic IP de l'EC2 depuis les outputs Terraform
+   terraform output elastic_ip
    
    # Ajouter cette IP dans MongoDB Atlas :
    # 1. Atlas Dashboard > Network Access > Add IP Address
-   # 2. Ajouter l'IP de l'EC2 (ex: 13.38.50.18/32)
+   # 2. Ajouter l'Elastic IP de l'EC2 (ex: 13.38.50.18/32)
    # 3. Sauvegarder et attendre la propagation (~2 min)
+   
+   # Note: Utilisez l'Elastic IP (fixe) plutôt que l'IP publique (variable)
    ```
 
 4. **Vérification**:
    ```bash
-   # L'application sera accessible sur l'IP publique affichée
+   # L'application sera accessible sur l'Elastic IP (fixe)
+   terraform output application_url
    # Attendez ~3 minutes le démarrage des services
    # PUIS configurer MongoDB Atlas avant le premier test
+   ```
+
+5. **Configuration HTTPS** (si vous avez un domaine):
+   ```bash
+   # Se connecter à l'instance
+   ssh -i ~/.ssh/mbot-key.pem ubuntu@$(terraform output -raw elastic_ip)
+   
+   # Configurer HTTPS avec Let's Encrypt
+   sudo apt update && sudo apt install -y certbot python3-certbot-nginx
+   sudo certbot --nginx -d votre-domaine.com --non-interactive --agree-tos --email votre-email@domaine.com --redirect
+   
+   # Vérifier HTTPS
+   curl -I https://votre-domaine.com
    ```
 
 ## 📁 Structure
@@ -118,6 +135,12 @@ Ce script charge automatiquement les variables depuis `.env.secrets` et les expo
 
 ### Gestion d'Instance (`./scripts/manage.sh`)
 
+**Aide et options disponibles**:
+```bash
+./scripts/manage.sh -h          # Afficher l'aide complète
+./scripts/manage.sh help        # Afficher l'aide complète
+```
+
 **Mode interactif**:
 ```bash
 cd ~/infra/aws/mbot-infra
@@ -135,6 +158,12 @@ cd ~/infra/aws/mbot-infra
 
 ### Monitoring (`./scripts/monitoring.sh`)
 
+**Aide et options disponibles**:
+```bash
+./scripts/monitoring.sh -h        # Afficher l'aide complète
+./scripts/monitoring.sh help      # Afficher l'aide complète
+```
+
 **Dashboard complet**:
 ```bash
 ./scripts/monitoring.sh dashboard
@@ -142,7 +171,8 @@ cd ~/infra/aws/mbot-infra
 
 **Monitoring continu**:
 ```bash
-./scripts/monitoring.sh         # Menu interactif
+./scripts/monitoring.sh           # Menu interactif
+./scripts/monitoring.sh continuous # Monitoring continu
 ```
 
 **Métriques spécifiques**:
@@ -155,11 +185,19 @@ cd ~/infra/aws/mbot-infra
 
 ### Sauvegarde (`./scripts/backup.sh`)
 
+**Aide et options disponibles**:
+```bash
+./scripts/backup.sh -h           # Afficher l'aide complète
+./scripts/backup.sh help         # Afficher l'aide complète
+```
+
 **Sauvegarde manuelle**:
 ```bash
 ./scripts/backup.sh create       # Créer snapshot
 ./scripts/backup.sh list         # Lister snapshots
 ./scripts/backup.sh cleanup      # Nettoyer anciens (>7j)
+./scripts/backup.sh restore      # Infos restauration
+./scripts/backup.sh costs        # Estimation coûts
 ```
 
 **Sauvegarde automatique**:
@@ -175,6 +213,12 @@ cd ~/infra/aws/mbot-infra
 
 ### Redéploiement (`./scripts/redeploy.sh`)
 
+**Aide et options disponibles**:
+```bash
+./scripts/redeploy.sh -h            # Afficher l'aide complète
+./scripts/redeploy.sh help          # Afficher l'aide complète
+```
+
 **Redéployer la dernière version depuis GitHub**:
 ```bash
 ./scripts/redeploy.sh deploy        # Télécharge et déploie la dernière version
@@ -185,7 +229,6 @@ cd ~/infra/aws/mbot-infra
 ```bash
 ./scripts/redeploy.sh status        # État de l'application actuelle
 ./scripts/redeploy.sh rollback      # Revenir à la version précédente
-./scripts/redeploy.sh help          # Aide détaillée
 ```
 
 **Processus automatique** :
@@ -212,6 +255,159 @@ cd ~/infra/aws/mbot-infra
 ### Coût Total Estimé
 - **Usage continu**: ~€18/mois
 - **Usage optimisé**: ~€8-12/mois
+
+## 🔐 Configuration HTTPS
+
+L'application est configurée avec un certificat SSL Let's Encrypt pour un accès sécurisé en HTTPS.
+
+### Configuration automatique
+
+Si vous avez un nom de domaine pointant vers votre Elastic IP, vous pouvez configurer HTTPS facilement :
+
+```bash
+# 1. Se connecter à l'instance
+ssh -i ~/.ssh/mbot-key.pem ubuntu@$(terraform output -raw elastic_ip)
+
+# 2. Installer Certbot
+sudo apt update && sudo apt install -y certbot python3-certbot-nginx
+
+# 3. Obtenir le certificat SSL (remplacez par votre domaine)
+sudo certbot --nginx -d votre-domaine.com --non-interactive --agree-tos --email votre-email@domaine.com --redirect
+```
+
+### Configuration manuelle Nginx
+
+Si Certbot ne peut pas configurer automatiquement Nginx, voici la configuration manuelle :
+
+**1. Obtenir le certificat uniquement :**
+```bash
+sudo certbot certonly --nginx -d votre-domaine.com --non-interactive --agree-tos --email votre-email@domaine.com
+```
+
+**2. Configurer Nginx manuellement :**
+```bash
+# Sauvegarder la configuration actuelle
+sudo cp /etc/nginx/sites-available/mbot /etc/nginx/sites-available/mbot.backup
+
+# Créer la nouvelle configuration HTTPS
+sudo tee /etc/nginx/sites-available/mbot > /dev/null << 'EOF'
+# HTTP to HTTPS redirect
+server {
+    listen 80;
+    server_name votre-domaine.com;
+    return 301 https://$server_name$request_uri;
+}
+
+# HTTPS configuration
+server {
+    listen 443 ssl;
+    server_name votre-domaine.com;
+
+    ssl_certificate /etc/letsencrypt/live/votre-domaine.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/votre-domaine.com/privkey.pem;
+    
+    # SSL security configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout 10m;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_tickets off;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=63072000" always;
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+
+    location / {
+        proxy_pass http://localhost:8501;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        # WebSocket support for Streamlit
+        proxy_read_timeout 86400;
+    }
+}
+EOF
+
+# Tester et recharger la configuration
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### Vérification HTTPS
+
+```bash
+# Vérifier le certificat SSL
+sudo certbot certificates
+
+# Tester le renouvellement automatique
+sudo certbot renew --dry-run
+
+# Vérifier l'accès HTTPS
+curl -I https://votre-domaine.com
+
+# Vérifier la redirection HTTP->HTTPS
+curl -I http://votre-domaine.com
+```
+
+### Renouvellement automatique
+
+Le certificat Let's Encrypt se renouvelle automatiquement :
+
+```bash
+# Vérifier le timer de renouvellement
+sudo systemctl status certbot.timer
+
+# Logs de renouvellement
+sudo journalctl -u certbot.service
+```
+
+### Sécurité HTTPS
+
+La configuration inclut :
+- **TLS 1.2/1.3** : Protocoles cryptographiques modernes
+- **HSTS** : Force HTTPS pendant 2 ans (max-age=63072000)
+- **Headers de sécurité** : Protection contre XSS, clickjacking, MIME sniffing
+- **Perfect Forward Secrecy** : Chiffrement avec clés éphémères
+- **WebSocket support** : Compatible avec Streamlit
+
+### Dépannage HTTPS
+
+**Certificat non reconnu :**
+```bash
+# Vérifier la configuration du domaine
+dig votre-domaine.com
+
+# Vérifier les logs Let's Encrypt
+sudo tail -f /var/log/letsencrypt/letsencrypt.log
+```
+
+**Erreur Nginx :**
+```bash
+# Tester la configuration
+sudo nginx -t
+
+# Voir les logs d'erreur
+sudo tail -f /var/log/nginx/error.log
+```
+
+**Renouvellement échoue :**
+```bash
+# Forcer le renouvellement
+sudo certbot renew --force-renewal
+
+# Debug mode
+sudo certbot renew --dry-run --debug
+```
 
 ## 🔄 Workflows Types
 
@@ -262,7 +458,8 @@ cd ~/infra/aws/mbot-infra
 ### SSH
 - Clé SSH obligatoire (pas de mot de passe)
 - IP source restreinte dans terraform.tfvars
-- Connexion: `ssh -i mbot-key.pem ubuntu@<IP_PUBLIQUE>`
+- Connexion: `ssh -i mbot-key.pem ubuntu@<ELASTIC_IP>`
+- L'Elastic IP reste fixe même après redémarrage d'instance
 
 ### Variables Sensibles
 - APIs keys dans le fichier `.env.secrets` (ignoré par Git)
@@ -310,12 +507,12 @@ ssh -i mbot-key.pem ubuntu@<IP> "sudo journalctl -u mbot | grep -i mongodb"
 
 **Solution** (CRITIQUE pour les performances) :
 ```bash
-# 1. Obtenir l'IP publique de l'EC2
-terraform output instance_public_ip
+# 1. Obtenir l'Elastic IP de l'EC2
+terraform output elastic_ip
 
 # 2. Ajouter cette IP dans MongoDB Atlas Network Access :
 #    - Atlas Dashboard > Network Access > Add IP Address
-#    - Ajouter l'IP de l'EC2 (format: xx.xx.xx.xx/32)
+#    - Ajouter l'Elastic IP de l'EC2 (format: xx.xx.xx.xx/32)
 #    - Sauvegarder et attendre la propagation (~2 minutes)
 
 # 3. Redémarrer l'application
@@ -342,7 +539,8 @@ terraform import aws_instance.mbot i-xxxxxxxxx
 terraform plan                    # Prévisualiser les changements
 terraform apply -auto-approve     # Appliquer sans confirmation
 terraform destroy                 # Détruire l'infrastructure
-terraform output                  # Afficher les outputs
+terraform output                  # Afficher tous les outputs
+terraform output elastic_ip       # Afficher l'Elastic IP
 terraform state list              # Lister les ressources
 ```
 
