@@ -8,7 +8,7 @@ apt-get update
 apt-get upgrade -y
 
 # Installation des dépendances
-apt-get install -y python3 python3-pip python3-venv git nginx curl
+apt-get install -y python3 python3-pip python3-venv git nginx curl certbot python3-certbot-nginx
 
 # Création de l'utilisateur mbot
 useradd -m -s /bin/bash mbot
@@ -57,7 +57,7 @@ EOF
 cat > /etc/nginx/sites-available/mbot << EOF
 server {
     listen 80;
-    server_name _;
+    server_name ${domain_name};
 
     location / {
         proxy_pass http://localhost:8501;
@@ -95,3 +95,32 @@ systemctl status mbot
 systemctl status nginx
 
 echo "Déploiement terminé. Application accessible sur port 80."
+
+# Attendre que l'application soit complètement opérationnelle
+sleep 30
+
+# Configuration SSL avec Let's Encrypt (avec retry)
+echo "Configuration SSL avec Let's Encrypt..."
+SSL_RETRY_COUNT=0
+SSL_MAX_RETRIES=3
+
+while [ $SSL_RETRY_COUNT -lt $SSL_MAX_RETRIES ]; do
+    if certbot --nginx -d ${domain_name} --email ${ssl_email} --agree-tos --non-interactive --redirect; then
+        echo "SSL configuré avec succès!"
+        systemctl reload nginx
+        break
+    else
+        SSL_RETRY_COUNT=$((SSL_RETRY_COUNT + 1))
+        echo "Échec de la configuration SSL, tentative $SSL_RETRY_COUNT/$SSL_MAX_RETRIES"
+        if [ $SSL_RETRY_COUNT -lt $SSL_MAX_RETRIES ]; then
+            echo "Nouvelle tentative dans 60 secondes..."
+            sleep 60
+        else
+            echo "Configuration SSL échouée après $SSL_MAX_RETRIES tentatives."
+            echo "Vous pouvez configurer SSL manuellement plus tard avec:"
+            echo "sudo certbot --nginx -d ${domain_name} --email ${ssl_email} --agree-tos --non-interactive --redirect"
+        fi
+    fi
+done
+
+echo "Déploiement complet. Application accessible sur https://${domain_name}"

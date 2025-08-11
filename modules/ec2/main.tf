@@ -32,6 +32,8 @@ resource "aws_instance" "mbot_chatbot" {
     mongodb_database   = var.mongodb_database
     mongodb_collection = var.mongodb_collection
     github_repo        = var.github_repo
+    domain_name        = var.domain_name
+    ssl_email          = var.ssl_email
   }))
 
   tags = {

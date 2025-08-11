@@ -37,10 +37,16 @@ load_env_secrets() {
     return 0
 }
 
-# Fonction pour obtenir l'IP publique depuis Terraform
+# Fonction pour obtenir l'IP publique depuis Terraform (priorité à l'EIP)
 get_public_ip() {
     cd "$TERRAFORM_DIR"
-    PUBLIC_IP=$(terraform output -raw instance_public_ip 2>/dev/null)
+    # Essayer d'abord l'Elastic IP
+    PUBLIC_IP=$(terraform output -raw elastic_ip 2>/dev/null)
+    
+    # Si pas d'EIP, utiliser l'IP publique de l'instance
+    if [ $? -ne 0 ] || [ -z "$PUBLIC_IP" ] || [ "$PUBLIC_IP" = "null" ]; then
+        PUBLIC_IP=$(terraform output -raw instance_public_ip 2>/dev/null)
+    fi
     
     if [ $? -ne 0 ]; then
         echo -e "${RED}❌ Impossible de récupérer l'IP depuis Terraform${NC}"

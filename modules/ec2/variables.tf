@@ -60,3 +60,15 @@ variable "github_repo" {
   type        = string
   default     = "https://github.com/ChristopherRuby/mbot.git"
 }
+
+variable "domain_name" {
+  description = "Domain name for SSL certificate"
+  type        = string
+  default     = "mbot.augmented-systems.com"
+}
+
+variable "ssl_email" {
+  description = "Email for SSL certificate registration"
+  type        = string
+  default     = "christopher.cloud.pro@hotmail.com"
+}
